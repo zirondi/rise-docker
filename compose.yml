@@ -1,0 +1,26 @@
+# Desafio de casa: dois containers que conversam entre si.
+#
+#   podman compose up -d        # sobe os dois
+#   podman compose logs -f      # veja o "visitante" acessando o "site"
+#   podman compose down         # derruba tudo
+#
+# Compare com o compose.yml do CTF que vocês jogaram: é a mesma ideia,
+# só com mais peças.
+services:
+  # Serviço 1: o mesmo servidor web do Lab 4
+  site:
+    build: .
+    command: httpd -f -v -h /www
+    ports:
+      - "8080:80"
+    # As mesmas "coleiras" que vocês usaram na mão com --memory e --pids-limit
+    mem_limit: 64m
+    pids_limit: 50
+
+  # Serviço 2: um "usuário" que visita o site a cada 5 segundos.
+  # Repare: ele encontra o outro container pelo NOME do serviço (http://site).
+  visitante:
+    build: .
+    command: sh -c 'while true; do wget -qO- http://site | grep h1; sleep 5; done'
+    depends_on:
+      - site

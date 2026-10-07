@@ -1,0 +1,14 @@
+# Ajustes para subir o rise-ctf-linux numa máquina qualquer durante a aula
+# (sem Traefik e sem depender de /etc/timezone existir no host).
+#
+#   cd ../rise-ctf-linux
+#   podman network create edge-network        # só na primeira vez
+#   podman compose -f compose.yml -f ../rise-docker-lab/demo-ctf.override.yml up -d
+#   -> abra http://localhost:3000  (usuário player, senha no Dockerfile)
+services:
+  ctf-ssh:
+    volumes: !override
+      - ./home:/home/player
+  ctf-web-terminal:
+    ports:
+      - "3000:3000"
