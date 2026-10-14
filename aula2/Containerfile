@@ -1,0 +1,21 @@
+# Receita da imagem da aula 2: o site de login.
+# Para construir (dentro da pasta aula2/):  podman build -t rise-web .
+
+FROM public.ecr.aws/docker/library/alpine:3.21
+
+# python3 roda o site; sqlite é o programa que lê o arquivo do banco;
+# tcpdump fica guardado para a próxima aula
+RUN apk add --no-cache bash python3 sqlite tcpdump
+
+COPY app/site.py /app/site.py
+
+# Pasta onde o site guarda o banco de usuários
+RUN mkdir /dados
+
+# Um prompt que deixa óbvio que você está DENTRO do container
+ENV PS1="[container \h] \w # "
+# Faz o Python imprimir cada linha de log na hora
+ENV PYTHONUNBUFFERED=1
+
+# O que roda quando ninguém pede outra coisa: o site
+CMD ["python3", "/app/site.py"]

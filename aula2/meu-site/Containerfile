@@ -1,0 +1,9 @@
+# Sua primeira receita: parte da imagem do lab e troca só a página.
+# Para construir (dentro da pasta aula2/meu-site/):  podman build -t meu-site .
+
+FROM localhost/rise-lab
+
+COPY index.html /www/index.html
+
+# O que roda quando ninguém pede outra coisa: agora é o servidor web
+CMD ["httpd", "-f", "-v", "-h", "/www"]

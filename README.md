@@ -303,3 +303,9 @@ Para fazer no seu computador: as máquinas do lab não têm o `compose` instalad
 2. Suba com `podman compose up -d` e acompanhe com `podman compose logs -f`.
 3. Responda: como o container `visitante` encontra o `site`, se ninguém passou um endereço IP para ele?
 4. Compare com o [`compose.yml` do CTF](../rise-ctf-linux/compose.yml) que vocês jogaram. Ache nele o limite de memória e o limite de processos. Agora você sabe por que eles estão lá.
+
+---
+
+## Aula 2
+
+A continuação está em [`aula2/README.md`](aula2/README.md): o servidor web do Lab 4, a sua primeira imagem e um site com login.
