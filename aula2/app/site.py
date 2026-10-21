@@ -8,6 +8,7 @@ calma: a aula é sobre o que há de errado aqui.
 
 import html
 import os
+import socket
 import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -142,7 +143,26 @@ class Site(BaseHTTPRequestHandler):
         self.wfile.write(conteudo)
 
 
+class ServidorDuplo(ThreadingHTTPServer):
+    """Escuta em IPv4 e IPv6 ao mesmo tempo: "localhost" pode chegar por qualquer um dos dois."""
+
+    address_family = socket.AF_INET6
+
+    def server_bind(self):
+        self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        super().server_bind()
+
+
+def criar_servidor():
+    try:
+        return ServidorDuplo(("::", PORTA), Site)
+    except OSError:
+        # Container sem IPv6: fica só no IPv4
+        return ThreadingHTTPServer(("", PORTA), Site)
+
+
 if __name__ == "__main__":
     abrir_banco().close()
+    servidor = criar_servidor()
     print(f"Site de login no ar na porta {PORTA} (formulário via {METODO.upper()})", flush=True)
-    ThreadingHTTPServer(("", PORTA), Site).serve_forever()
+    servidor.serve_forever()

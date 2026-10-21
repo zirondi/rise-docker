@@ -11,6 +11,14 @@ voce@lab:~$                       <- sua máquina
 
 E os **dois terminais** também: **A** para os comandos principais, **B** para observar.
 
+## Hoje os comandos estão em scripts
+
+Cada passo da aula é um script nesta pasta. Rode `ls` e veja: os números são os números dos Labs. Todo script **mostra em amarelo o comando que está rodando** antes de rodá-lo. Leia essa linha: é ela que você vai digitar quando não tiver script nenhum.
+
+Os scripts que sobem um container apagam antes o container antigo de mesmo nome. Então "apague o container e suba outro igual" é só rodar o mesmo script de novo.
+
+Se aparecer `Permission denied`, rode com `bash` na frente: `bash 04-site.sh`.
+
 ---
 
 ## Preparação
@@ -29,15 +37,19 @@ git clone https://github.com/zirondi/rise-docker.git rise-docker-lab
 cd rise-docker-lab
 ```
 
-Carregue as duas imagens de hoje. A primeira é a da aula passada; a segunda é nova.
+Nos **dois** terminais, entre na pasta da aula de hoje:
 
 ```bash
-podman load -i imagens/rise-lab-amd64.tar.gz
-podman load -i aula2/imagens/rise-web-amd64.tar.gz
-podman images
+cd aula2
 ```
 
-Devem aparecer `rise-lab` e `rise-web`.
+No terminal A, carregue as duas imagens de hoje (a da aula passada e uma nova):
+
+```bash
+./00-preparar.sh
+```
+
+No final devem aparecer `rise-lab` e `rise-web`.
 
 ---
 
@@ -46,24 +58,23 @@ Devem aparecer `rise-lab` e `rise-web`.
 Um container que fica rodando em segundo plano (`-d`) e atende pela rede:
 
 ```bash
-podman run -d --name site -p 8080:80 rise-lab httpd -f -v -h /www
+./04-site.sh
 ```
 
-`-p 8080:80` liga a porta 8080 **da sua máquina** à porta 80 **do container**.
+Repare no `-p 8080:80` do comando amarelo: ele liga a porta 8080 **da sua máquina** à porta 80 **do container**.
 
 Abra no navegador: <http://localhost:8080>
 
-Depois:
+Veja o que existe agora na sua máquina:
 
 ```bash
-podman ps            # o container está lá, com a porta mapeada
-podman logs site     # cada acesso que você fez aparece aqui
+./estado.sh
 ```
 
 No terminal B, deixe os logs correndo e aperte F5 no navegador algumas vezes:
 
 ```bash
-podman logs -f site
+./logs.sh site
 ```
 
 (Ctrl+C para sair.)
@@ -71,76 +82,59 @@ podman logs -f site
 Desafio: mude o texto da página **sem parar o container**. Dica:
 
 ```bash
-podman exec -it site bash
+./entrar.sh site
 ```
 
-O arquivo é `/www/index.html` (o editor `vi` está disponível; para sair dele, `Esc` e `:wq`).
+O arquivo é `/www/index.html` (o editor `vi` está disponível; para sair dele, `Esc` e `:wq`). Para sair do container, `exit`.
 
-Conseguiu? Agora apague o container e suba outro igual:
+Conseguiu? Agora apague o container e suba outro igual, rodando o mesmo script de novo:
 
 ```bash
-podman rm -f site
-podman run -d --name site -p 8080:80 rise-lab httpd -f -v -h /www
+./04-site.sh
 ```
 
 F5 no navegador.
 
 **Pense:** para onde foi a sua alteração? Onde você já viu isso acontecer na aula passada?
 
-```bash
-podman rm -f site
-```
-
 ---
 
 ## Lab 5 — Sua primeira imagem
 
-Mexer dentro do container não dura. Para a mudança durar, ela tem que estar na **receita**.
+Mexer dentro do container não dura. Para a mudança durar, ela tem que estar na **receita**: o arquivo `meu-site/Containerfile`. São três instruções: parte da imagem `rise-lab`, copia um `index.html` por cima do original e define o que roda quando o container sobe.
+
+Abra o arquivo `meu-site/index.html` no editor de texto e troque o título pelo seu nome. Salve. Depois construa a imagem:
 
 ```bash
-cd aula2/meu-site
-cat Containerfile
+./05-construir.sh
 ```
 
-São três instruções: parte da imagem `rise-lab`, copia um `index.html` por cima do original e define o que roda quando o container sobe.
+O script mostra a receita, constrói a imagem `meu-site` e, no final, as camadas dela: a de cima é a sua.
 
-Abra o `index.html` desta pasta no editor de texto e troque o título pelo seu nome. Salve. Depois construa a imagem (o ponto no final faz parte do comando: é "a pasta atual"):
+Suba um container a partir dela. Repare que o comando amarelo não tem mais `httpd ...` no final: a receita já sabe o que rodar.
 
 ```bash
-podman build -t meu-site .
-podman images
+./05-meu-site.sh
 ```
 
-Suba um container a partir dela. Repare que não precisa mais dizer `httpd ...` no final: a receita já sabe o que rodar.
+F5 em <http://localhost:8080>. Agora o teste que importa: apague e suba de novo.
 
 ```bash
-podman run -d --name site -p 8080:80 meu-site
-```
-
-F5 em <http://localhost:8080>. Agora o teste que importa:
-
-```bash
-podman rm -f site
-podman run -d --name site -p 8080:80 meu-site
+./05-meu-site.sh
 ```
 
 F5 de novo.
 
 **Pense:** desta vez a página sobreviveu. O que mudou em relação ao Lab 4?
 
-```bash
-podman rm -f site
-cd ../..
-```
-
 ---
 
 ## Lab 6 — Um site com login
 
-A imagem `rise-web` traz um site de verdade, pequeno: cadastro, login e um banco de dados. Suba em outra porta:
+A imagem `rise-web` traz um site de verdade, pequeno: cadastro, login e um banco de dados. Ele sobe em outra porta:
 
 ```bash
-podman run -d --name login -p 8081:80 rise-web
+./06-login.sh
 ```
 
 Abra <http://localhost:8081>.
@@ -152,7 +146,7 @@ Abra <http://localhost:8081>.
 O site inteiro é um arquivo de 150 linhas. Dê uma olhada:
 
 ```bash
-less aula2/app/site.py
+./06-codigo.sh
 ```
 
 (`q` para sair.) Não precisa entender tudo. Procure só duas coisas: onde a senha é **guardada** e onde ela é **comparada**.
@@ -170,7 +164,7 @@ Agora abra o histórico do navegador (Ctrl+H).
 E no terminal B:
 
 ```bash
-podman logs login
+./logs.sh login
 ```
 
 **Pense:** em quantos lugares diferentes a sua senha ficou escrita? Quem mais, além de você, consegue ler cada um deles?
@@ -178,7 +172,7 @@ podman logs login
 O navegador não faz mágica: ele manda um texto para o servidor e recebe outro de volta. Dá para fazer o mesmo pedido na mão (troque `SEU_USUARIO` e `SUA_SENHA`):
 
 ```bash
-curl -v 'http://localhost:8081/login?usuario=SEU_USUARIO&senha=SUA_SENHA'
+./07-curl.sh SEU_USUARIO SUA_SENHA
 ```
 
 As linhas que começam com `>` são o que foi **enviado**. As que começam com `<` são o que **voltou**.
@@ -192,27 +186,27 @@ As linhas que começam com `>` são o que foi **enviado**. As que começam com `
 O site guarda os usuários num arquivo dentro do container: `/dados/usuarios.db`. Abra o arquivo com o programa que lê esse tipo de banco:
 
 ```bash
-podman exec -it login sqlite3 -header -column /dados/usuarios.db 'SELECT * FROM usuarios'
+./08-banco.sh
 ```
 
 Você não digitou senha nenhuma para ver isso.
 
 **Desafio:** entre no site como `admin` e pegue o segredo.
 
-Na vida real ninguém precisa nem entrar no servidor: basta o arquivo vazar. Copie o banco para fora do container, como alguém que achou um backup esquecido:
+Na vida real ninguém precisa nem entrar no servidor: basta o arquivo vazar. Copie o banco para fora do container, como alguém que achou um backup esquecido, e procure uma senha nele:
 
 ```bash
-podman cp login:/dados/usuarios.db /tmp/vazou.db
-grep -a -o 'cafe[a-z0-9-]*' /tmp/vazou.db
+./08-vazar.sh
 ```
 
 **Pense:** se este fosse um site com 10 mil usuários, o que a pessoa que pegou esse arquivo teria em mãos? E se metade desses usuários usa a mesma senha no e-mail?
 
 ### O banco também é descartável
 
+Apague o site e suba outro:
+
 ```bash
-podman rm -f login
-podman run -d --name login -p 8081:80 rise-web
+./06-login.sh
 ```
 
 Tente entrar com a sua conta.
@@ -220,25 +214,16 @@ Tente entrar com a sua conta.
 A conta sumiu junto com o container, como a página do Lab 4. Um site de verdade não pode perder os usuários a cada reinício: o banco precisa morar fora do container. É a "porta" (`-v`) da aula passada, agora usada de propósito:
 
 ```bash
-podman rm -f login
-podman run -d --name login -p 8081:80 -v dados-login:/dados rise-web
+./08-login-volume.sh
 ```
 
-Crie a conta de novo, apague o container e suba outro com o mesmo comando acima. A conta continua lá.
+Crie a conta de novo e rode o mesmo script outra vez (ele apaga o container e sobe outro). A conta continua lá. Veja o volume na lista:
 
 ```bash
-podman volume ls
+./estado.sh
 ```
 
 **Pense:** o banco agora sobrevive ao container. As senhas dentro dele também.
-
-Ao terminar:
-
-```bash
-podman rm -f login
-podman volume rm dados-login
-rm /tmp/vazou.db
-```
 
 ---
 
@@ -247,43 +232,53 @@ rm /tmp/vazou.db
 O site aceita uma opção que troca a forma como o formulário envia os dados: em vez de irem na URL (GET), eles vão no corpo do pedido (POST).
 
 ```bash
-podman run -d --name login -p 8081:80 -e METODO=post rise-web
+./09-login-post.sh
 ```
 
-Entre com `ana` e a senha `123456` e olhe de novo os três lugares do Lab 7:
+Entre com `ana` e a senha `123456` e olhe de novo os três lugares do Lab 7. No terminal B:
 
 ```bash
-podman logs login
+./logs.sh login
 # -> "POST /login HTTP/1.1" 200 -
 ```
 
 A senha sumiu da barra de endereço, do histórico e do log. O pedido feito na mão fica assim:
 
 ```bash
-curl -v -d 'usuario=ana&senha=123456' http://localhost:8081/login
+./09-curl-post.sh ana 123456
 ```
 
 **Pense:** a senha saiu da primeira linha do pedido. Ela deixou de ser enviada? E no banco, mudou alguma coisa?
 
+Ao terminar a aula:
+
 ```bash
-podman rm -f login
+./limpar.sh
 ```
 
-Para rodar em casa, construa a imagem em vez de carregar o arquivo (funciona em qualquer computador, inclusive Mac com chip Apple): `cd aula2 && podman build -t rise-web .`
+Para rodar em casa, num computador que não é x86_64 (um Mac com chip Apple, por exemplo), o `./00-preparar.sh` constrói as imagens em vez de carregar o arquivo.
 
 ---
 
-## Cola de comandos
+## Cola: o que cada script roda
 
-| Comando | O que faz |
+| Script | Comando |
 |---|---|
-| `podman run -d --name NOME -p 8080:80 IMAGEM` | Sobe um container em segundo plano com uma porta ligada à sua máquina |
-| `podman logs NOME` / `podman logs -f NOME` | Mostra o que o container imprimiu / fica acompanhando |
-| `podman exec -it NOME bash` | Abre um shell dentro de um container que já está rodando |
-| `podman exec NOME COMANDO` | Roda um comando só, lá dentro |
-| `podman build -t NOME .` | Constrói uma imagem a partir do `Containerfile` da pasta atual |
-| `podman cp NOME:/caminho DESTINO` | Copia um arquivo de dentro do container para a sua máquina |
-| `podman run -v VOLUME:/pasta ...` | Guarda `/pasta` num volume, que sobrevive ao container |
-| `podman volume ls` / `podman volume rm VOLUME` | Lista / apaga volumes |
-| `podman rm -f NOME` | Para e apaga um container de uma vez |
-| `curl -v URL` | Faz um pedido web pelo terminal e mostra o que foi enviado e recebido |
+| `./00-preparar.sh` | `podman load -i ARQUIVO` (ou `podman build -t NOME PASTA`) e `podman images` |
+| `./estado.sh` | `podman ps`, `podman images`, `podman volume ls` |
+| `./logs.sh NOME` | `podman logs -f NOME`: o que o container imprimiu, acompanhando |
+| `./painel.sh NOME` | `podman stats NOME`: CPU, memória e processos ao vivo |
+| `./entrar.sh NOME` | `podman exec -it NOME bash`: um shell dentro de um container rodando |
+| `./04-site.sh` | `podman run -d --name site -p 8080:80 rise-lab httpd -f -v -h /www` |
+| `./05-construir.sh` | `podman build -t meu-site meu-site` e `podman history meu-site` |
+| `./05-meu-site.sh` | `podman run -d --name site -p 8080:80 meu-site` |
+| `./06-login.sh` | `podman run -d --name login -p 8081:80 rise-web` |
+| `./07-curl.sh USUARIO SENHA` | `curl -v 'http://localhost:8081/login?usuario=…&senha=…'` |
+| `./08-banco.sh` | `podman exec login sqlite3 … 'SELECT * FROM usuarios'` |
+| `./08-vazar.sh` | `podman cp login:/dados/usuarios.db vazou.db` e `grep` |
+| `./08-login-volume.sh` | `podman run … -v dados-login:/dados rise-web`: o banco num volume |
+| `./09-login-post.sh` | `podman run … -e METODO=post rise-web` |
+| `./09-curl-post.sh USUARIO SENHA` | `curl -v -d 'usuario=…&senha=…' http://localhost:8081/login` |
+| `./limpar.sh` | `podman rm -f`, `podman volume rm`, `podman rmi meu-site` |
+
+Antes de subir um container, todo script desses roda `podman rm -f NOME` para apagar o antigo.
